@@ -13,21 +13,22 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
 
 def start_bot(bot, update):
 	mytext = 'Привет, {}'.format(update.message.chat.first_name)
+	logging.info('Пользователь {} нажал /start'.format(update.message.chat.username))
 	update.message.reply_text(mytext)
 
 
 def chat(bot, update):
 	text = update.message.text
 	update.message.reply_text(text)
-	sticker = Sticker(file_id='CAADAQADNAIAAiJHOgfE0KNHT2UJIwI', width=100, height=100)
-	update.message.reply_sticker(sticker=sticker)
+	#sticker = Sticker(file_id='CAADAQADNAIAAiJHOgfE0KNHT2UJIwI', width=100, height=100)
+	#update.message.reply_sticker(sticker=sticker)
 
 
 def main():
 	update = Updater(settings.TELEGRAM_API_KEY)
 
 	update.dispatcher.add_handler(CommandHandler("start", start_bot))
-	update.dispatcher.add_handler(MessageHandler(Filters.sticker, chat))
+	#update.dispatcher.add_handler(MessageHandler(Filters.sticker, chat))
 	update.dispatcher.add_handler(MessageHandler(Filters.text, chat))
 
 
