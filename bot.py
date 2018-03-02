@@ -2,6 +2,7 @@ import logging
 import settings
 import ephem
 import datetime
+import random
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 from telegram import Sticker
@@ -19,9 +20,12 @@ def start_bot(bot, update):
 			 'Команда /wordcount посчитает количество слов.'
 			 'Ввдеди данную команду, пробел, затем в двойных кавычках напиши предложение\n'
 			 'Также я умею считать. Для этого введи математическое выражение, поставь равно (например 2+3=), и я скажу тебе ответ.\n'
-			 'Я пойму, если ты напишешь мне словами. Только каждое число должно быть от 0 до 10. (Например один и один плюс три). \n'
+			 'Я пойму, если ты напишешь мне словами. Только каждое число должно быть от 0 до 10.'
+			 '(Например, сколько будет один и один плюс три). \n'
 			 'А еще я скажу тебе, когда следующее полнолуние.'
-			 'Для этого напиши "Когда ближайшее полнолуние после " (без ковычек) и укажи дату в формате YYYY.MM.DD'.format(update.message.chat.first_name))
+			 'Для этого напиши "Когда ближайшее полнолуние после " (без ковычек)'
+			 'и укажи дату в формате YYYY.MM.DD'.format(update.message.chat.first_name))
+
 	logging.info('Пользователь {} нажал /start'.format(update.message.chat.username))
 	update.message.reply_text(mytext)
 
@@ -47,9 +51,7 @@ def ask_planet(bot, update):
 	text = update.message.text[8:]
 	date = datetime.datetime.now()
 	date = date.strftime('%Y/%m/%d')
-	print(text)
 	text = text.capitalize()
-	print(text, date)
 	planets_dict = {'Mercury':ephem.Mercury(date), 'Venus':ephem.Venus(date), 
 					 'Mars':ephem.Mars(date), 
 					'Jupiter':ephem.Jupiter(date), 'Saturn':ephem. Saturn(date),
@@ -134,10 +136,10 @@ def keyboard(bot, update):
 
 
 def dictionary_calculator(text):
-	text = text.lower()
+	text = text.lower().replace('на','')
 	if text.endswith('?'):
 		text = text.replace('?', '')
-
+	
 	text = text.split()
 	transformation = {'и':'.', 'один':'1', 'два':'2', 'три':'3',
 					'четыре':'4', 'пять':'5', 'шесть':'6',
@@ -148,21 +150,40 @@ def dictionary_calculator(text):
 	for word in text:
 		if word in transformation:
 			math_expression +=transformation[word]
-	return calculator(math_expression)
 	
-	print(math_expression)
+	return calculator(math_expression)
 
 
 def full_moon(text):
 	text = text.replace('.', '/') 
 	text = text.replace('-', '/')
-	print(text)
 	date = ephem.next_full_moon(text)
-	print(ephem.next_full_moon(text))
 	return str(date)
-	print(date)
 
 
+def goroda(bot, update):
+	towns_with_letter = []
+
+	with open ('city.txt', 'r') as file:
+		for line in file:
+			line = line.replace(' ', '').lower()
+			city_list = line.split(',')
+	
+	town = update.message.text[8:]
+	town = town.lower()
+	letter = town[-1]
+
+	if town in city_list:
+		city_list.remove(town)
+	for city in city_list:
+		if city[0] == letter:
+			towns_with_letter.append(city)
+
+	index = random.randint(0,len(towns_with_letter))
+	city = towns_with_letter[index]
+	update.message.reply_text('{}, Ваш ход'.format(city.capitalize()))
+
+	
 def main():
 	update = Updater(settings.TELEGRAM_API_KEY)
 
@@ -172,6 +193,7 @@ def main():
 	update.dispatcher.add_handler(MessageHandler(Filters.text, chat))
 	update.dispatcher.add_handler(CommandHandler('planet', ask_planet))
 	update.dispatcher.add_handler(CommandHandler('wordcount', wordcount))
+	update.dispatcher.add_handler(CommandHandler('goroda', goroda))
 
 
 	update.start_polling()
