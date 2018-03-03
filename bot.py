@@ -3,15 +3,28 @@ import settings
 import ephem
 import datetime
 import random
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram import ReplyKeyboardMarkup, Sticker
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, RegexHandler
 
-from telegram import Sticker
+
+
+CITY_LIST = []
+'''with open ('city.txt', 'r') as file:
+	CITY_LIST = file.read().lower().split(', ')'''
 
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                     level=logging.INFO,
                     filename='bot.log'
                     )
+
+
+def updating_city_list():
+	with open ('city.txt', 'r') as file:
+		CITY_LIST = file.read().lower().split(', ')
+
+
+
 def start_bot(bot, update):
 	mytext = ('Привет, {} \n!'
 			 'Я учебный бот. Но могу тебе помочь. Вот список того, что я умею:\n'
@@ -130,8 +143,9 @@ def keyboard(bot, update):
 	print('2')
 	reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
 	print('3')
-	update.message.reply_text(m.chat_id, 'Кто ты?',
-                     reply_markup=keyboard)
+	bot.send_message(chat_id=chat_id, 
+    				text="Custom Keyboard Test", 
+                  	reply_markup=reply_markup)	
 	print('4')
 
 
@@ -162,39 +176,46 @@ def full_moon(text):
 
 
 def goroda(bot, update):
+	print(CITY_LIST)
 	towns_with_letter = []
-
-	with open ('city.txt', 'r') as file:
-		for line in file:
-			line = line.replace(' ', '').lower()
-			city_list = line.split(',')
 	
 	town = update.message.text[8:]
 	town = town.lower()
 	letter = town[-1]
 
-	if town in city_list:
-		city_list.remove(town)
-	for city in city_list:
+	if town in CITY_LIST:
+		CITY_LIST.remove(town)
+
+	for city in CITY_LIST:
 		if city[0] == letter:
 			towns_with_letter.append(city)
 
-	index = random.randint(0,len(towns_with_letter))
+	print(towns_with_letter)
+	index = random.randint(0,(len(towns_with_letter)-1))
+	print(index)
 	city = towns_with_letter[index]
+	if city in CITY_LIST:
+		CITY_LIST.remove(city)
+
 	update.message.reply_text('{}, Ваш ход'.format(city.capitalize()))
+
+
+def updating(bot, update):
+    updating_city_list()
 
 	
 def main():
+	CITY_LIST = updating_city_list()
 	update = Updater(settings.TELEGRAM_API_KEY)
 
 	update.dispatcher.add_handler(CommandHandler("start", start_bot))
 	update.dispatcher.add_handler(CommandHandler("keyboard", keyboard))
 	#update.dispatcher.add_handler(MessageHandler(Filters.sticker, chat))
-	update.dispatcher.add_handler(MessageHandler(Filters.text, chat))
+	update.dispatcher.add_handler(RegexHandler('^Давай заново&', updating))
 	update.dispatcher.add_handler(CommandHandler('planet', ask_planet))
 	update.dispatcher.add_handler(CommandHandler('wordcount', wordcount))
 	update.dispatcher.add_handler(CommandHandler('goroda', goroda))
-
+	update.dispatcher.add_handler(MessageHandler(Filters.text, chat))
 
 	update.start_polling()
 	update.idle()
